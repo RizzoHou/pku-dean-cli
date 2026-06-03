@@ -1,3 +1,9 @@
+# Claude Code / AI-assistant artifacts — keep out of this public repo
+CLAUDE.md
+**/CLAUDE.md
+CLAUDE.local.md
+.claude/
+
 # Secrets — keep the dir, never commit its contents (real PKU credentials)
 secrets/*
 !secrets/.gitkeep
