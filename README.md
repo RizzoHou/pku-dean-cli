@@ -106,3 +106,7 @@ Every resource above is public. The only dean content behind PKU's central IAAA 
 .venv/bin/python -m pytest      # offline; uses saved HTML fixtures
 .venv/bin/ruff check src tests
 ```
+
+## License
+
+[MIT](LICENSE)
