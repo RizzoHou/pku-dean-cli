@@ -5,6 +5,7 @@ import pytest
 from dean.errors import DeanError
 from dean.parsers import (
     parse_files,
+    parse_guide,
     parse_rule_doc,
     parse_rules,
     parse_sidebar,
@@ -53,6 +54,26 @@ def test_rule_doc_valid(fixture):
 def test_rule_doc_missing_raises_not_found(fixture):
     with pytest.raises(DeanError) as exc:
         parse_rule_doc(fixture("rule_missing.html"), 99999999, "http://x")
+    assert exc.value.code == "not_found"
+
+
+def test_guide_valid(fixture):
+    doc = parse_guide(fixture("guide_valid.html"), 15, "http://x/student_info.php?id=15")
+    assert doc.title == "选课"
+    assert doc.update_date == "2021-09-01"
+    headings = [s.heading for s in doc.sections]
+    assert "服务描述" in headings and "服务流程" in headings
+    assert all(s.body for s in doc.sections)
+    # Related links are classified and a policy link points at a fetchable rule.
+    groups = {r.group for r in doc.related}
+    assert "policy" in groups
+    policy = next(r for r in doc.related if r.group == "policy")
+    assert "rules_info.php" in policy.url
+
+
+def test_guide_missing_raises_not_found(fixture):
+    with pytest.raises(DeanError) as exc:
+        parse_guide(fixture("guide_missing.html"), 99999, "http://x")
     assert exc.value.code == "not_found"
 
 

@@ -14,6 +14,8 @@ _ROUTES = {
     "rules.php": "rules_national.html",
     "rules_info.php?id=20": "rule_valid.html",
     "rules_info.php?id=99999999": "rule_missing.html",
+    "student_info.php?id=15": "guide_valid.html",
+    "student_info.php?id=99999": "guide_missing.html",
     "download.php": "download.html",
     "openinfo.php": "openinfo.html",
 }
@@ -71,6 +73,20 @@ def test_rules_show_missing_error_envelope(capsys):
     payload = json.loads(out.out)
     assert payload["ok"] is False
     assert payload["error"]["code"] == "not_found"
+
+
+def test_guide_json(capsys):
+    code, out = _run(capsys, "--format", "json", "guide", "15")
+    assert code == 0
+    doc = json.loads(out.out)["data"]
+    assert doc["title"] == "选课"
+    assert doc["sections"]
+
+
+def test_guide_missing_error(capsys):
+    code, out = _run(capsys, "--format", "json", "guide", "99999")
+    assert code == 1
+    assert json.loads(out.out)["error"]["code"] == "not_found"
 
 
 def test_human_format_default(capsys):

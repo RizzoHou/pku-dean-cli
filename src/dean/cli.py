@@ -27,6 +27,7 @@ from .output import (
     jsonable,
     render_file_list,
     render_files,
+    render_guide,
     render_rule_doc,
     render_rule_list,
     render_rules,
@@ -55,6 +56,10 @@ def build_parser() -> argparse.ArgumentParser:
 
     # sidebar
     sub.add_parser("sidebar", help="List the 学生 sidebar links by category.")
+
+    # guide (content behind a student_info.php sidebar link)
+    guide = sub.add_parser("guide", help="Show a student guide page (student_info.php).")
+    guide.add_argument("id", type=int, help="Guide id (student_info.php?id=).")
 
     # rules
     rules = sub.add_parser("rules", help="Browse rules/regulations.")
@@ -119,6 +124,10 @@ def _dispatch(client: DeanClient, args: argparse.Namespace):
     if cmd == "sidebar":
         links = resources.get_sidebar(client)
         return jsonable(links), render_sidebar(links)
+
+    if cmd == "guide":
+        doc = resources.show_guide(client, args.id)
+        return jsonable(doc), render_guide(doc)
 
     if cmd == "rules":
         if args.action == "show":

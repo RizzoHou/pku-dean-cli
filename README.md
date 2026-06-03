@@ -19,6 +19,7 @@ All are public and need no login.
 | Command | Source page | What it returns |
 |---|---|---|
 | `dean sidebar` | `index.php` 学生 sidebar | student links grouped by category |
+| `dean guide <id>` | `student_info.php?id=` | content behind a sidebar link (sections + related links) |
 | `dean rules list` | `rules_school.php` / `rules.php` | rules/regulations (school or national) |
 | `dean rules show <id>` | `rules_info.php?id=` | full text of one rule |
 | `dean download list` | `download.php` | downloadable files (forms, handbooks…) |
@@ -31,6 +32,9 @@ All are public and need no login.
 ```bash
 # Student sidebar, grouped by category
 dean sidebar
+
+# Content behind a sidebar link (id comes from the sidebar URL, e.g. ...?id=15 → 选课)
+dean guide 15
 
 # School rules — one page, or every page
 dean rules list --scope school

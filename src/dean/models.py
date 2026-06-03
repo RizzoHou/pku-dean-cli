@@ -39,6 +39,35 @@ class RuleDoc:
 
 
 @dataclass
+class GuideSection:
+    """One heading/body section of a student guide page."""
+
+    heading: str
+    body: str
+
+
+@dataclass
+class RelatedLink:
+    """A cross-reference shown on a guide page (policy / notice / download)."""
+
+    group: str  # "policy" | "notice" | "download" | "other"
+    title: str
+    url: str
+
+
+@dataclass
+class GuideDoc:
+    """A student guide page (student_info.php?id=...)."""
+
+    id: int
+    title: str
+    url: str
+    update_date: str | None = None
+    sections: list = field(default_factory=list)
+    related: list = field(default_factory=list)
+
+
+@dataclass
 class FileItem:
     """A downloadable file on download.php or openinfo.php."""
 

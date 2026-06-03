@@ -11,8 +11,8 @@ from pathlib import Path
 
 from .client import BASE_URL, INDEX_URL, WEB_URL, DeanClient
 from .errors import DeanError
-from .models import FileItem, Page, RuleDoc, RuleItem, SidebarLink
-from .parsers import parse_files, parse_rule_doc, parse_rules, parse_sidebar
+from .models import FileItem, GuideDoc, Page, RuleDoc, RuleItem, SidebarLink
+from .parsers import parse_files, parse_guide, parse_rule_doc, parse_rules, parse_sidebar
 
 # scope -> listing page
 _RULES_PAGES = {
@@ -33,6 +33,14 @@ MAX_PAGES = 200  # safety bound for --all
 
 def get_sidebar(client: DeanClient) -> list[SidebarLink]:
     return parse_sidebar(client.get_html(INDEX_URL))
+
+
+# -- student guide ----------------------------------------------------------
+
+
+def show_guide(client: DeanClient, guide_id: int) -> GuideDoc:
+    url = f"{WEB_URL}student_info.php?id={guide_id}"
+    return parse_guide(client.get_html(url), guide_id, url)
 
 
 # -- rules ------------------------------------------------------------------
@@ -113,6 +121,7 @@ def _collect_all(fetch):
 __all__ = [
     "BASE_URL",
     "get_sidebar",
+    "show_guide",
     "list_rules",
     "list_all_rules",
     "show_rule",

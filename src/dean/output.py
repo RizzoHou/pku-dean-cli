@@ -18,7 +18,7 @@ import sys
 from typing import Any
 
 from .errors import DeanError
-from .models import FileItem, Page, RuleDoc, RuleItem, SidebarLink
+from .models import FileItem, GuideDoc, Page, RuleDoc, RuleItem, SidebarLink
 
 
 def jsonable(obj: Any) -> Any:
@@ -69,6 +69,21 @@ def render_rules(page: Page) -> str:
 
 def render_rule_doc(doc: RuleDoc) -> str:
     return f"{doc.title}\n{'=' * len(doc.title)}\n{doc.url}\n\n{doc.text}"
+
+
+def render_guide(doc: GuideDoc) -> str:
+    out = [doc.title, "=" * len(doc.title), doc.url]
+    if doc.update_date:
+        out.append(f"更新日期：{doc.update_date}")
+    for sec in doc.sections:
+        out.append(f"\n## {sec.heading}")
+        if sec.body:
+            out.append(sec.body)
+    if doc.related:
+        out.append("\n## 相关链接")
+        for rel in doc.related:
+            out.append(f"  [{rel.group}] {rel.title}\n    {rel.url}")
+    return "\n".join(out)
 
 
 def render_files(page: Page) -> str:

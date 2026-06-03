@@ -17,11 +17,28 @@ from bs4 import BeautifulSoup
 
 from .client import INDEX_URL, WEB_URL
 from .errors import DeanError
-from .models import FileItem, Page, RuleDoc, RuleItem, SidebarLink
+from .models import (
+    FileItem,
+    GuideDoc,
+    GuideSection,
+    Page,
+    RelatedLink,
+    RuleDoc,
+    RuleItem,
+    SidebarLink,
+)
 from .pagination import parse_last_page
 
 _ID_RE = re.compile(r"[?&]id=(\d+)")
 _DIGITS_RE = re.compile(r"(\d+)")
+_UPDATE_RE = re.compile(r"更新日期[：:]\s*([0-9-]+)")
+
+# Related-link target page -> group label.
+_RELATED_GROUPS = (
+    ("rules_info.php", "policy"),
+    ("notice_details.php", "notice"),
+    ("download_down.php", "download"),
+)
 
 
 def _soup(html: str) -> BeautifulSoup:
@@ -110,6 +127,72 @@ def parse_rule_doc(html: str, rule_id: int, url: str) -> RuleDoc:
     if not title and len(text) < 10:
         raise DeanError(f"no rule found with id={rule_id}", code="not_found")
     return RuleDoc(id=rule_id, title=title, text=text, url=url)
+
+
+# -- student guide ----------------------------------------------------------
+
+
+def parse_guide(html: str, guide_id: int, url: str) -> GuideDoc:
+    """Parse a student guide page (student_info.php?id=...).
+
+    Layout: ``.main_con`` holds an ``h1`` title, then alternating ``.item``
+    (an ``h2`` heading) and ``.list`` (its body) blocks, a ``.share_ds`` with the
+    update date, and a ``.tab_info`` of related policy/notice/download links.
+    """
+    soup = _soup(html)
+    main = soup.select_one(".main_con")
+    if main is None:
+        # A missing id returns HTTP 200 with an essentially empty body.
+        raise DeanError(f"no guide found with id={guide_id}", code="not_found")
+
+    title_el = main.find("h1")
+    title = title_el.get_text(strip=True) if title_el else ""
+
+    sections: list[GuideSection] = []
+    for item in main.find_all("div", class_="item", recursive=False):
+        heading_el = item.find(["h2", "h3"])
+        heading = heading_el.get_text(strip=True) if heading_el else ""
+        body_el = item.find_next_sibling("div", class_="list")
+        body = body_el.get_text("\n", strip=True) if body_el else ""
+        if heading or body:
+            sections.append(GuideSection(heading=heading, body=body))
+
+    if not title and not sections:
+        raise DeanError(f"no guide found with id={guide_id}", code="not_found")
+
+    update_match = _UPDATE_RE.search(main.get_text())
+    update_date = update_match.group(1) if update_match else None
+
+    related: list[RelatedLink] = []
+    seen: set[tuple[str, str]] = set()
+    for a in main.select(".tab_info a[href]"):
+        href = a["href"]
+        text = a.get_text(strip=True)
+        if not text:
+            continue
+        key = (text, href)
+        if key in seen:
+            continue
+        seen.add(key)
+        related.append(
+            RelatedLink(group=_related_group(href), title=text, url=urljoin(WEB_URL, href))
+        )
+
+    return GuideDoc(
+        id=guide_id,
+        title=title,
+        url=url,
+        update_date=update_date,
+        sections=sections,
+        related=related,
+    )
+
+
+def _related_group(href: str) -> str:
+    for needle, group in _RELATED_GROUPS:
+        if needle in href:
+            return group
+    return "other"
 
 
 # -- file listings ----------------------------------------------------------
