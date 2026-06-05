@@ -6,6 +6,8 @@ from dean.errors import DeanError
 from dean.parsers import (
     parse_files,
     parse_guide,
+    parse_notice_doc,
+    parse_notices,
     parse_rule_doc,
     parse_rules,
     parse_sidebar,
@@ -74,6 +76,38 @@ def test_guide_valid(fixture):
 def test_guide_missing_raises_not_found(fixture):
     with pytest.raises(DeanError) as exc:
         parse_guide(fixture("guide_missing.html"), 99999, "http://x")
+    assert exc.value.code == "not_found"
+
+
+def test_notices_listing_paginated(fixture):
+    page = parse_notices(fixture("notice_list.html"))
+    assert page.page == 1
+    assert page.last_page == 45
+    assert len(page.items) == 15
+    first = page.items[0]
+    assert first.id > 0
+    assert "notice_details.php" in first.url
+    assert first.date == "2026-06-03"
+    # IDs are unique.
+    ids = [i.id for i in page.items]
+    assert len(ids) == len(set(ids))
+
+
+def test_notice_doc_valid(fixture):
+    doc = parse_notice_doc(
+        fixture("notice_valid.html"), 743, "http://x/notice_details.php?id=743"
+    )
+    assert "期末考试" in doc.title
+    assert doc.date == "2026-05-20"
+    assert len(doc.text) > 500
+    # The heading, date span, and share widget are stripped from the body.
+    assert "分享到" not in doc.text
+    assert doc.text.startswith("根据我校教学进程")
+
+
+def test_notice_doc_missing_raises_not_found(fixture):
+    with pytest.raises(DeanError) as exc:
+        parse_notice_doc(fixture("notice_missing.html"), 99999999, "http://x")
     assert exc.value.code == "not_found"
 
 

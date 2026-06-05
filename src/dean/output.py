@@ -18,7 +18,16 @@ import sys
 from typing import Any
 
 from .errors import DeanError
-from .models import FileItem, GuideDoc, Page, RuleDoc, RuleItem, SidebarLink
+from .models import (
+    FileItem,
+    GuideDoc,
+    NoticeDoc,
+    NoticeItem,
+    Page,
+    RuleDoc,
+    RuleItem,
+    SidebarLink,
+)
 
 
 def jsonable(obj: Any) -> Any:
@@ -84,6 +93,31 @@ def render_guide(doc: GuideDoc) -> str:
         for rel in doc.related:
             out.append(f"  [{rel.group}] {rel.title}\n    {rel.url}")
     return "\n".join(out)
+
+
+def render_notices(page: Page) -> str:
+    header = _page_header(page, "notices")
+    rows = [_notice_row(it) for it in page.items]
+    return "\n".join([header, *rows]) if rows else header + "\n  (no notices found)"
+
+
+def render_notice_list(items: list[NoticeItem]) -> str:
+    head = f"notices — {len(items)} item(s), all pages"
+    return "\n".join([head, *(_notice_row(it) for it in items)])
+
+
+def render_notice_doc(doc: NoticeDoc) -> str:
+    out = [doc.title, "=" * len(doc.title), doc.url]
+    if doc.date:
+        out.append(doc.date)
+    out.append("")
+    out.append(doc.text)
+    return "\n".join(out)
+
+
+def _notice_row(it: NoticeItem) -> str:
+    suffix = f"  ({it.date})" if it.date else ""
+    return f"  [{it.id:>4}] {it.title}{suffix}"
 
 
 def render_files(page: Page) -> str:

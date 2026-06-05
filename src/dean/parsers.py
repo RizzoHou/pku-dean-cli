@@ -21,6 +21,8 @@ from .models import (
     FileItem,
     GuideDoc,
     GuideSection,
+    NoticeDoc,
+    NoticeItem,
     Page,
     RelatedLink,
     RuleDoc,
@@ -32,6 +34,7 @@ from .pagination import parse_last_page
 _ID_RE = re.compile(r"[?&]id=(\d+)")
 _DIGITS_RE = re.compile(r"(\d+)")
 _UPDATE_RE = re.compile(r"更新日期[：:]\s*([0-9-]+)")
+_DATE_RE = re.compile(r"\d{4}-\d{2}-\d{2}")
 
 # Related-link target page -> group label.
 _RELATED_GROUPS = (
@@ -127,6 +130,62 @@ def parse_rule_doc(html: str, rule_id: int, url: str) -> RuleDoc:
     if not title and len(text) < 10:
         raise DeanError(f"no rule found with id={rule_id}", code="not_found")
     return RuleDoc(id=rule_id, title=title, text=text, url=url)
+
+
+# -- notices ----------------------------------------------------------------
+
+
+def parse_notices(html: str) -> Page:
+    """Parse notice.php into a page of :class:`NoticeItem`."""
+    soup = _soup(html)
+    items: list[NoticeItem] = []
+    seen: set[int] = set()
+    for box in soup.select(".notice_item"):
+        link = box.select_one('a[href*="notice_details.php"]')
+        if link is None:
+            continue
+        nid = _extract_id(link.get("href", ""))
+        title = link.get_text(strip=True)
+        if nid is None or not title or nid in seen:
+            continue
+        seen.add(nid)
+        date_el = box.find("span")
+        date = date_el.get_text(strip=True) if date_el else ""
+        items.append(
+            NoticeItem(
+                id=nid,
+                title=title,
+                url=urljoin(WEB_URL, link["href"]),
+                date=date if _DATE_RE.fullmatch(date) else None,
+            )
+        )
+    return Page(page=_current_page(soup), last_page=parse_last_page(soup), items=items)
+
+
+def parse_notice_doc(html: str, notice_id: int, url: str) -> NoticeDoc:
+    """Parse a single notice detail page (notice_details.php?id=...)."""
+    soup = _soup(html)
+    box = soup.select_one(".newsinfo_box") or soup.select_one(".news_con")
+    if box is None:
+        raise DeanError(f"notice body not found for id={notice_id}", code="parse_error")
+
+    title_el = box.find("h1") or soup.select_one("#sub_content .active")
+    title = title_el.get_text(strip=True) if title_el else ""
+
+    date_el = box.find("span", recursive=False)
+    raw_date = date_el.get_text(strip=True) if date_el else ""
+    date = raw_date if _DATE_RE.fullmatch(raw_date) and raw_date != "1970-01-01" else None
+
+    # Drop the heading, the date span, and the share widget before reading body,
+    # so a missing notice (which serves only those) is detectably empty.
+    for junk in (box.find("h1"), date_el, *box.select(".share_ds, .bdsharebuttonbox")):
+        if junk is not None:
+            junk.decompose()
+    text = box.get_text("\n", strip=True)
+
+    if not title and not text:
+        raise DeanError(f"no notice found with id={notice_id}", code="not_found")
+    return NoticeDoc(id=notice_id, title=title, text=text, url=url, date=date)
 
 
 # -- student guide ----------------------------------------------------------

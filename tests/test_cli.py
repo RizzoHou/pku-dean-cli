@@ -16,6 +16,9 @@ _ROUTES = {
     "rules_info.php?id=99999999": "rule_missing.html",
     "student_info.php?id=15": "guide_valid.html",
     "student_info.php?id=99999": "guide_missing.html",
+    "notice_details.php?id=743": "notice_valid.html",
+    "notice_details.php?id=99999999": "notice_missing.html",
+    "notice.php": "notice_list.html",
     "download.php": "download.html",
     "openinfo.php": "openinfo.html",
 }
@@ -85,6 +88,29 @@ def test_guide_json(capsys):
 
 def test_guide_missing_error(capsys):
     code, out = _run(capsys, "--format", "json", "guide", "99999")
+    assert code == 1
+    assert json.loads(out.out)["error"]["code"] == "not_found"
+
+
+def test_notice_list_json(capsys):
+    code, out = _run(capsys, "--format", "json", "notice", "list")
+    assert code == 0
+    data = json.loads(out.out)["data"]
+    assert data["last_page"] == 45
+    assert data["count"] == len(data["items"])
+    assert data["items"][0]["date"]
+
+
+def test_notice_show_json(capsys):
+    code, out = _run(capsys, "--format", "json", "notice", "show", "743")
+    assert code == 0
+    doc = json.loads(out.out)["data"]
+    assert "期末考试" in doc["title"]
+    assert doc["date"] == "2026-05-20"
+
+
+def test_notice_show_missing_error(capsys):
+    code, out = _run(capsys, "--format", "json", "notice", "show", "99999999")
     assert code == 1
     assert json.loads(out.out)["error"]["code"] == "not_found"
 

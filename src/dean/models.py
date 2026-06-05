@@ -68,6 +68,27 @@ class GuideDoc:
 
 
 @dataclass
+class NoticeItem:
+    """A notice/announcement listed on notice.php."""
+
+    id: int
+    title: str
+    url: str
+    date: str | None = None
+
+
+@dataclass
+class NoticeDoc:
+    """Full text of a single notice (notice_details.php?id=...)."""
+
+    id: int
+    title: str
+    text: str
+    url: str
+    date: str | None = None
+
+
+@dataclass
 class FileItem:
     """A downloadable file on download.php or openinfo.php."""
 

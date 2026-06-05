@@ -11,8 +11,25 @@ from pathlib import Path
 
 from .client import BASE_URL, INDEX_URL, WEB_URL, DeanClient
 from .errors import DeanError
-from .models import FileItem, GuideDoc, Page, RuleDoc, RuleItem, SidebarLink
-from .parsers import parse_files, parse_guide, parse_rule_doc, parse_rules, parse_sidebar
+from .models import (
+    FileItem,
+    GuideDoc,
+    NoticeDoc,
+    NoticeItem,
+    Page,
+    RuleDoc,
+    RuleItem,
+    SidebarLink,
+)
+from .parsers import (
+    parse_files,
+    parse_guide,
+    parse_notice_doc,
+    parse_notices,
+    parse_rule_doc,
+    parse_rules,
+    parse_sidebar,
+)
 
 # scope -> listing page
 _RULES_PAGES = {
@@ -59,6 +76,24 @@ def list_all_rules(client: DeanClient, scope: str) -> list[RuleItem]:
 def show_rule(client: DeanClient, rule_id: int) -> RuleDoc:
     url = f"{WEB_URL}rules_info.php?id={rule_id}"
     return parse_rule_doc(client.get_html(url), rule_id, url)
+
+
+# -- notices ----------------------------------------------------------------
+
+
+def list_notices(client: DeanClient, *, page: int = 1) -> Page:
+    url = f"{WEB_URL}notice.php"
+    html = client.get_html(url, params={"page": page} if page > 1 else None)
+    return parse_notices(html)
+
+
+def list_all_notices(client: DeanClient) -> list[NoticeItem]:
+    return _collect_all(lambda p: list_notices(client, page=p))
+
+
+def show_notice(client: DeanClient, notice_id: int) -> NoticeDoc:
+    url = f"{WEB_URL}notice_details.php?id={notice_id}"
+    return parse_notice_doc(client.get_html(url), notice_id, url)
 
 
 # -- files (download / openinfo) -------------------------------------------
@@ -125,6 +160,9 @@ __all__ = [
     "list_rules",
     "list_all_rules",
     "show_rule",
+    "list_notices",
+    "list_all_notices",
+    "show_notice",
     "list_files",
     "list_all_files",
     "download_file",

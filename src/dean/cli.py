@@ -7,6 +7,8 @@ human-readable text.
     dean sidebar
     dean rules list --scope school --all
     dean rules show 20
+    dean notice list --page 2
+    dean notice show 743
     dean download list --page 2
     dean download get 213 -o downloads
     dean openinfo list
@@ -28,6 +30,9 @@ from .output import (
     render_file_list,
     render_files,
     render_guide,
+    render_notice_doc,
+    render_notice_list,
+    render_notices,
     render_rule_doc,
     render_rule_list,
     render_rules,
@@ -74,6 +79,14 @@ def build_parser() -> argparse.ArgumentParser:
     _add_paging(rules_list)
     rules_show = rules_sub.add_parser("show", help="Show full text of one rule.")
     rules_show.add_argument("id", type=int, help="Rule id (rules_info.php?id=).")
+
+    # notices
+    notice = sub.add_parser("notice", help="Browse notices/announcements (notice.php).")
+    notice_sub = notice.add_subparsers(dest="action", required=True)
+    notice_list = notice_sub.add_parser("list", help="List notices.")
+    _add_paging(notice_list)
+    notice_show = notice_sub.add_parser("show", help="Show full text of one notice.")
+    notice_show.add_argument("id", type=int, help="Notice id (notice_details.php?id=).")
 
     # download / openinfo share the same shape
     for name, helptext in (
@@ -138,6 +151,16 @@ def _dispatch(client: DeanClient, args: argparse.Namespace):
             return _all_payload(items), render_rule_list(items)
         page = resources.list_rules(client, args.scope, page=args.page)
         return jsonable(page), render_rules(page)
+
+    if cmd == "notice":
+        if args.action == "show":
+            doc = resources.show_notice(client, args.id)
+            return jsonable(doc), render_notice_doc(doc)
+        if args.all:
+            items = resources.list_all_notices(client)
+            return _all_payload(items), render_notice_list(items)
+        page = resources.list_notices(client, page=args.page)
+        return jsonable(page), render_notices(page)
 
     if cmd in ("download", "openinfo"):
         if args.action == "get":
